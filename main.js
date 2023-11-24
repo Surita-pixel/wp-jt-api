@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
-function defineCliente(id){
+function defineCliente(id) {
     return new Client({
         authStrategy: new LocalAuth({ clientId: id })
     })
@@ -16,7 +16,7 @@ server.on('headers', (headers, req) => {
 });
 
 const client = defineCliente(1)
-client.on("authenticated", ()=>{
+client.on("authenticated", () => {
     console.log("autenticado")
 })
 server.on('connection', (socket) => {
@@ -31,12 +31,15 @@ server.on('connection', (socket) => {
         console.log(`Mensaje recibido: ${JSON.stringify(mensaje)}`);
 
         const qrListener = (qr) => {
+            socket.send(JSON.stringify({"estado":"ready"}))
             qrcode.generate(qr, { small: true });
             console.log('Escanea el código QR con tu teléfono para iniciar sesión.');
         };
-        if (mensaje.message == '/qr') {
+        if (mensaje.message == 'qr') {
             try {
+                let respuestaEspera = { "estado": "waiting" }
 
+                socket.send(JSON.stringify(respuestaEspera))
                 client.on('qr', qrListener);
             } catch (error) {
                 console.error('Error al procesar el código QR:', error.message);
@@ -47,7 +50,7 @@ server.on('connection', (socket) => {
             let contactos = await client.getContacts()
             const limite = mensaje.message.limit || contactos.length;
 
-    // Devuelve los primeros 'limite' contactos
+            // Devuelve los primeros 'limite' contactos
             const contactosEnLimite = contactos.slice(0, limite);
             socket.send(JSON.stringify(contactosEnLimite))
         }
@@ -55,14 +58,14 @@ server.on('connection', (socket) => {
             let user = new LocalAuth({})
             user
         }
-        
-        if (mensaje.message == "enviarMensaje"){
+
+        if (mensaje.message == "enviarMensaje") {
             client.sendMessage(mensaje.recibeID, mensaje.mensajeEnviar);
         }
         client.on('ready', async () => {
             console.log('¡El cliente está listo!');
             client.off('qr', qrListener);
-            socket.send(JSON.stringify( client.info))
+            socket.send(JSON.stringify(client.info))
             socket.send('Cliente listo. Puedes iniciar sesión escaneando el código QR.');
         });
         client.initialize();
