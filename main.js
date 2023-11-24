@@ -1,15 +1,12 @@
 const WebSocket = require('ws');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const fs = require('fs');
 
 function defineCliente(id){
     return new Client({
         authStrategy: new LocalAuth({ clientId: id })
     })
 }
-
-
 const server = new WebSocket.Server({ host: "0.0.0.0", port: 8099 });
 
 // Middleware para habilitar CORS
@@ -17,12 +14,6 @@ server.on('headers', (headers, req) => {
     headers.push('Access-Control-Allow-Origin: *');
     headers.push('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
 });
-
-
-// Load the session data if it has been previously saved
-
-
-
 
 const client = defineCliente(1)
 client.on("authenticated", ()=>{
@@ -52,21 +43,26 @@ server.on('connection', (socket) => {
                 socket.send('Error al procesar el código QR. Inténtalo de nuevo.');
             }
         }
-        if (mensaje.message == "listarContactos") {
+        if (mensaje.message == "obtenerContactos") {
             let contactos = await client.getContacts()
-            socket.send(JSON.stringify(contactos))
+            const limite = mensaje.message.limit || contactos.length;
+
+    // Devuelve los primeros 'limite' contactos
+            const contactosEnLimite = contactos.slice(0, limite);
+            socket.send(JSON.stringify(contactosEnLimite))
         }
         if (mensaje.message == "iniciar") {
             let user = new LocalAuth({})
             user
         }
+        
         if (mensaje.message == "enviarMensaje"){
             client.sendMessage(mensaje.recibeID, mensaje.mensajeEnviar);
         }
         client.on('ready', async () => {
             console.log('¡El cliente está listo!');
             client.off('qr', qrListener);
-            console.log(client.info)
+            socket.send(JSON.stringify( client.info))
             socket.send('Cliente listo. Puedes iniciar sesión escaneando el código QR.');
         });
         client.initialize();
@@ -78,15 +74,3 @@ server.on('connection', (socket) => {
     });
 });
 
-
-client.on('message', async (msg) => {
-    try {
-        if (msg.body === '!ping') {
-            let contactos = await client.getContacts();
-            console.log(contactos);
-            msg.reply('pong');
-        }
-    } catch (error) {
-        console.error('Error al procesar el mensaje:', error.message);
-    }
-});
