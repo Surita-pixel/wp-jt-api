@@ -7,7 +7,7 @@ function defineCliente(id) {
         authStrategy: new LocalAuth({ clientId: id })
     })
 }
-const server = new WebSocket.Server({ host: "0.0.0.0", port: 8099 });
+const server = new WebSocket.Server({ host: "158.220.116.166", port: 8099 });
 
 // Middleware para habilitar CORS
 server.on('headers', (headers, req) => {
