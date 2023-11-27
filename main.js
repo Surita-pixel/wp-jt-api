@@ -7,7 +7,7 @@ function defineCliente(id) {
         authStrategy: new LocalAuth({ clientId: id })
     })
 }
-const server = new WebSocket.Server({ host: "0.0.0.0", port: 8099 });
+const server = new WebSocket.Server({ host: "158.220.116.166", port: 8099 });
 
 // Middleware para habilitar CORS
 server.on('headers', (headers, req) => {
@@ -23,7 +23,7 @@ server.on('connection', (socket) => {
     console.log('Cliente conectado');
 
     // Envía un mensaje de bienvenida al cliente recién conectado
-    socket.send('¡Bienvenido al servidor WebSocket!');
+    socket.send(JSON.stringify({ 'mensaje': '¡Bienvenido al servidor WebSocket!' }));
 
     // Maneja los mensajes recibidos desde el cliente
     socket.on('message', async (message) => {
@@ -31,9 +31,14 @@ server.on('connection', (socket) => {
         console.log(`Mensaje recibido: ${JSON.stringify(mensaje)}`);
 
         const qrListener = (qr) => {
-            socket.send(JSON.stringify({"estado":"ready"}))
-            qrcode.generate(qr, { small: true });
-            console.log('Escanea el código QR con tu teléfono para iniciar sesión.');
+            try {
+                socket.send(JSON.stringify({ "estado": "ready" }))
+                let jsonEnviar = JSON.stringify({ "qr": qr })
+                socket.send(jsonEnviar)
+                console.log('Escanea el código QR con tu teléfono para iniciar sesión.');
+            } catch (e) {
+                console.log(`error => ${e}`)
+            }
         };
         if (mensaje.message == 'qr') {
             try {
@@ -66,7 +71,7 @@ server.on('connection', (socket) => {
             console.log('¡El cliente está listo!');
             client.off('qr', qrListener);
             socket.send(JSON.stringify(client.info))
-            socket.send('Cliente listo. Puedes iniciar sesión escaneando el código QR.');
+            socket.send(JSON.stringify({"mensaje":'Cliente listo. Puedes iniciar sesión escaneando el código QR.'}));
         });
         client.initialize();
     });
