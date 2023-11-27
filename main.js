@@ -4,7 +4,8 @@ const qrcode = require('qrcode-terminal');
 
 function defineCliente(id){
     return new Client({
-        authStrategy: new LocalAuth({ clientId: id })
+        authStrategy: new LocalAuth({ clientId: id }),
+	puppeteer: {headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox']}
     })
 }
 const server = new WebSocket.Server({ host: "158.220.116.166", port: 8099 });
@@ -71,7 +72,7 @@ server.on('connection', (socket) => {
             console.log('¡El cliente está listo!');
             client.off('qr', qrListener);
             socket.send(JSON.stringify( client.info))
-            socket.send('Cliente listo. Puedes iniciar sesión escaneando el código QR.');
+            socket.send(JSON.stringify({"mensaje":"cliente listo"}));
         });
         client.initialize();
     });
@@ -82,3 +83,68 @@ server.on('connection', (socket) => {
     });
 });
 
+//////////////////////////////INTEGRACION CW////////////////////////////////////////////////////
+
+const stringify = (payload = {}) => JSON.stringify(payload);
+const pubSubToken = "SqEQGC96eBooMiH9RMdMpdJh";
+const accountId = "1";
+const userId = "1";
+const connection = new WebSocket("wss://cwoot.full-sms.uno/cable");
+
+// Manejar la apertura de la conexión WebSocket
+connection.onopen = () => {
+  // Enviar mensaje de suscripción
+  connection.send(
+    stringify({
+      command: "subscribe",
+      identifier: stringify({
+        channel: "RoomChannel",
+        pubsub_token: pubSubToken,
+        account_id: accountId,
+        user_id: userId,
+      }),
+    })
+  );
+
+  // Enviar mensaje de actualización de presencia de usuario
+  const userPayload = stringify({
+    command: "message",
+    identifier: stringify({
+      channel: "RoomChannel",
+      pubsub_token: pubSubToken,
+      account_id: accountId,
+      user_id: userId,
+    }),
+    data: stringify({ action: "update_presence" }),
+  });
+
+  connection.send(userPayload);
+
+  // Enviar mensaje de actualización de presencia de contacto
+  const agentPayload = stringify({
+    command: "message",
+    identifier: stringify({
+      channel: "RoomChannel",
+      pubsub_token: pubSubToken,
+    }),
+    data: stringify({ action: "update_presence" }),
+  });
+
+  connection.send(agentPayload);
+};
+
+// Manejar errores en la conexión WebSocket
+connection.onerror = (error) => {
+  console.error(`WebSocket Error: ${error}`);
+};
+
+// Manejar el cierre de la conexión WebSocket
+connection.onclose = (event) => {
+  console.log(`WebSocket closed: ${event.code} - ${event.reason}`);
+};
+
+// Manejar mensajes recibidos
+connection.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  // Manejar los datos recibidos de Chatwoot.
+};
