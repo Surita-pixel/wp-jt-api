@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
-function defineCliente(id) {
+function defineCliente(id){
     return new Client({
         authStrategy: new LocalAuth({ clientId: id })
     })
@@ -16,7 +16,7 @@ server.on('headers', (headers, req) => {
 });
 
 const client = defineCliente(1)
-client.on("authenticated", () => {
+client.on("authenticated", ()=>{
     console.log("autenticado")
 })
 server.on('connection', (socket) => {
@@ -70,8 +70,8 @@ server.on('connection', (socket) => {
         client.on('ready', async () => {
             console.log('¡El cliente está listo!');
             client.off('qr', qrListener);
-            socket.send(JSON.stringify(client.info))
-            socket.send(JSON.stringify({"mensaje":'Cliente listo. Puedes iniciar sesión escaneando el código QR.'}));
+            socket.send(JSON.stringify( client.info))
+            socket.send('Cliente listo. Puedes iniciar sesión escaneando el código QR.');
         });
         client.initialize();
     });
